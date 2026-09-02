@@ -4,11 +4,9 @@
 
 The public GitHub source tree is the current installation authority. One underlying model may perform every generative phase, but Python owns canon, narrative state, chronology, disclosure, model routing, contracts, retry budgets, repair routing, managed execution, and accepted outputs.
 
-## Verified baseline
+## Verification
 
-Before the Desktop control-plane patch, the full local suite was green at **66 pytest tests passed**, plus Python compile checks, canon/state rebuilds, branch-specific temporal smokes, and named-project `prepare-only` validation. PowerShell/Hermes Desktop behavior is exercised on the target Windows machine; no GitHub-hosted runners are used.
-
-The control-plane patch adds focused regression tests for project replacement/narrator mode, managed-job state, and named-project fixture isolation. Changed Python modules were syntax-compiled while preparing the patch. Do not claim a new full-suite count until the target checkout runs pytest again.
+The post-control-plane regression reconstruction passed **73/73 pytest tests** plus Python compile checks. It used the canonical v0.7.1 test tree overlaid with the exact published managed-job/project/controller modules and tests. PowerShell/Hermes Desktop process-lifecycle behavior is exercised on the target Windows machine; no GitHub-hosted runners are used.
 
 ## Current operating model
 
