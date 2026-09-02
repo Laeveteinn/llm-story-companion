@@ -55,7 +55,7 @@ def test_general_third_person_is_narrator_not_fake_character(tmp_path, monkeypat
     state = StoryStateLibrary(project / 'runtime_state' / 'story_state.sqlite3')
     subject = state.subject_registry()['general third person']
     assert subject['kind'] == 'other'
-    assert subject['metadata']['role'] == 'narrator'
+    assert subject['role'] == 'narrator'
 
 
 def test_project_initializer_requires_explicit_slug_for_replacement(tmp_path, monkeypatch):
