@@ -24,8 +24,8 @@ Local-only verification for this checkpoint: **46 pytest tests passed**, plus Py
 
 ## Snapshot
 
-The exact downloadable v0.5.0 ZIP is SHA-256:
+The final reproducibly-built v0.5.0 ZIP is SHA-256:
 
-`6ce98fed16d344535861abcf3924e99e9463463c4418e3aa7f3ff046454d2343`
+`04eae2f6b19c43d3697a352dc1887423ca33ee69a46937f97a177349166013a3`
 
-`SNAPSHOT_MANIFEST.json` records every packaged path and per-file SHA-256. The connected GitHub write API cannot ingest a local binary/directory reference, so this repo checkpoint stores the human-readable architecture/handoff plus the byte-level manifest; the full ZIP is the canonical source handoff from the ChatGPT artifact.
+`SNAPSHOT_MANIFEST.json` records every packaged path and per-file SHA-256. The connected GitHub write API cannot ingest a local binary/directory reference, so this repo checkpoint stores the human-readable architecture/handoff plus the byte-level manifest; the full ZIP is the canonical source handoff from the ChatGPT artifact. Generated SQLite databases are reproducible from the checked-in YAML source formats and are intentionally treated as build/runtime artifacts rather than Git authority.
