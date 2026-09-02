@@ -5,6 +5,7 @@ __pycache__/
 node_modules/
 .runtime/
 runtime_state/
+projects/
 canon/*.sqlite3
 state/*.sqlite3
 config/toolchain.lock.json
