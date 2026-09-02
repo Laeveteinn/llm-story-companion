@@ -11,7 +11,7 @@ def _root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _project_args(root: Path, slug: str) -> list[str]:
+def _project_args(root: Path, slug: str, *, allow_unpinned: bool = False) -> list[str]:
     config_path = root / 'projects' / slug / 'project.json'
     if not config_path.is_file():
         raise SystemExit(f'unknown writing project {slug!r}: {config_path}')
@@ -27,6 +27,11 @@ def _project_args(root: Path, slug: str) -> list[str]:
     model = config.get('model')
     if bool(provider) != bool(model):
         raise SystemExit(f'project model pin is incomplete ({slug}): provider and model must be set together')
+    if not provider and not allow_unpinned:
+        raise SystemExit(
+            f'writing project {slug!r} has no pinned Hermes provider/model; refusing to inherit mutable '
+            f'Desktop/default model state. Pin it with: writing-project-model {slug} --provider <provider> --model <model>'
+        )
     result = [
         str(config['brief']),
         '--plan-id', str(config['plan_id']),
@@ -58,11 +63,22 @@ def main(argv: list[str] | None = None) -> int:
     raw = list(sys.argv[1:] if argv is None else argv)
     pre = argparse.ArgumentParser(add_help=False)
     pre.add_argument('--project')
+    pre.add_argument('--provider')
+    pre.add_argument('--model')
     known, remaining = pre.parse_known_args(raw)
-    # Explicit trailing CLI overrides remain possible; argparse uses the last
-    # occurrence, so a deliberate --provider/--model on this invocation can
-    # temporarily override a stored project pin without mutating project.json.
-    args = _project_args(root, known.project) + remaining if known.project else raw
+
+    if known.project:
+        explicit_pin = bool(known.provider or known.model)
+        if bool(known.provider) != bool(known.model):
+            raise SystemExit('explicit model override requires both --provider and --model')
+        args = _project_args(root, known.project, allow_unpinned=explicit_pin) + remaining
+        if explicit_pin:
+            # Explicit invocation override wins over the stored project pin for
+            # this run only; it does not mutate project.json.
+            args += ['--provider', str(known.provider), '--model', str(known.model)]
+    else:
+        args = raw
+
     proc = subprocess.run([sys.executable, str(controller), *args], cwd=root)
     return int(proc.returncode)
 
