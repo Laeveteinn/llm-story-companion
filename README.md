@@ -6,33 +6,68 @@ Planner/writer/controller are phases, not separate minds. The same model can per
 
 ## Install on Windows / Hermes
 
-The public GitHub source tree is the installation authority. The root installer resolves `main` once to an immutable 40-character Git commit, downloads the installer from that exact commit, checks out that exact source revision, records installation provenance, runs the full bootstrap, and installs the Hermes skill.
+The public GitHub source tree is the installation authority. The root installer resolves `main` once to an immutable Git commit, checks out that exact source revision, records installation provenance, runs the full bootstrap, and installs the Hermes skill.
 
 ```powershell
 iex (irm https://raw.githubusercontent.com/Laeveteinn/llm-story-companion/main/install-hermes.ps1)
 ```
 
-Default destination:
-
-```text
-%USERPROFILE%\WritingHarness-Deterministic
-```
-
-If Hermes is missing, the Windows bootstrap delegates Hermes installation to Nous Research's official installer. If Git is missing and WinGet is available, it installs Git for Windows. No GitHub Actions or hosted runners are required.
-
-For an already-cloned checkout, run:
+For an already-cloned checkout:
 
 ```powershell
 .\integrations\hermes\bootstrap.ps1
 ```
 
-That invokes `setup.ps1`, installs the local Hermes skill, and leaves the project ready to launch with:
+A full bootstrap installs the Python/NLP runtime, Node analyzers, Vale packages where available, builds the example canon/state stores, validates the example plan, writes a toolchain lock, runs `doctor`, and installs the Hermes skill.
 
-```powershell
-.\integrations\hermes\start-project.ps1
+## Hermes Desktop GUI: start your own story
+
+The Mara/Sable Bind material in the repository is a **test fixture only**. A real story gets an isolated local namespace under `projects/<slug>/`; it does not inherit the example canon or state.
+
+After installation, Hermes Desktop should be able to handle a natural request such as:
+
+> Start a new deterministic writing pilot called *Memory Debt*. First POV is Iri. The city lets people mortgage memories; Chapter 1 begins with Iri trying to steal one of her own memories back from a courthouse vault. Aim for roughly 2500 words and keep the first project seed sparse rather than inventing a huge bible first.
+
+The installed skill should save that brief and invoke:
+
+```text
+writing-project-init <brief> --slug memory-debt --title "Memory Debt" --viewpoint Iri
+writing-pilot --project memory-debt --skip-setup
 ```
 
-A real full bootstrap installs the core Python runtime, optional pinned NLP stack, Node analyzers, attempts Vale, builds canon/state SQLite stores, validates the example plan, writes a toolchain lock, runs `doctor`, and installs the Hermes skill.
+You should not have to run those commands yourself from normal Hermes GUI use.
+
+`writing-project-init` creates:
+
+```text
+projects/<slug>/
+├── brief.txt
+├── project.json
+├── canon_source/
+│   └── project.yaml
+├── state_source/
+│   └── project.yaml
+├── runtime_state/
+│   ├── canon.sqlite3
+│   └── story_state.sqlite3
+└── manuscript/
+```
+
+The first seed is intentionally sparse: one timeline point plus empty canon/state ledgers. It does **not** ask a model to hallucinate a prewritten encyclopedia before Chapter 1 exists. `projects/` is ignored by the public harness Git repository by default so private story material is not accidentally pushed upstream.
+
+For an existing named project, the GUI operator can simply invoke `writing-pilot --project <slug> --skip-setup`; `project.json` supplies that story's own brief, coordinates, canon/state sources, compiled stores, work directory, and manuscript output.
+
+## GUI-independent entrypoints
+
+The editable Python installation exposes:
+
+```text
+write-runtime
+writing-project-init
+writing-pilot
+```
+
+`writing-pilot` resolves the harness checkout from the installed Python package rather than trusting Hermes Desktop's current working directory. This keeps GUI CWD/project-discovery quirks out of the deterministic control boundary.
 
 ## Verify an installation
 
@@ -45,8 +80,6 @@ python write_runtime.py tool-verify
 python write_runtime.py state-audit --at book1/ch05 --json
 python write_runtime.py plan-check plans/example.json --library canon/canon.sqlite3 --state-library state/story_state.sqlite3
 ```
-
-The `write-runtime` console command is also installed by the package metadata.
 
 ## Architecture
 
@@ -85,7 +118,7 @@ The runtime never uses an unbounded critic/rewrite loop.
 
 ## Canon and narrative state
 
-Human-editable YAML compiles to SQLite authority stores:
+Human-editable YAML compiles to SQLite authority stores. The root commands below target the built-in fixture; named projects use project-specific paths automatically.
 
 ```powershell
 python write_runtime.py canon-build canon_source --out canon/canon.sqlite3
@@ -109,17 +142,7 @@ python write_runtime.py chronobreak `
   --out canon_source/retcon.ch05.yaml
 ```
 
-A child timeline inherits ancestor history only through its fork point. Parent future after the fork is not inherited.
-
-Inspect timelines mechanically:
-
-```powershell
-python write_runtime.py state-branches --json
-python write_runtime.py state-history --branch retcon.ch05 --at book1/ch09 --json
-python write_runtime.py state-diff --left main --right retcon.ch05 --at book1/ch09 --json
-```
-
-Truth time, character-knowledge time, and branch identity are separate axes. Automatic branch merge is intentionally absent in the pilot.
+A child timeline inherits ancestor history only through its fork point. Parent future after the fork is not inherited. Truth time, character-knowledge time, and branch identity are separate axes. Automatic branch merge is intentionally absent in the pilot.
 
 ## Disclosure-safe single-model execution
 
@@ -134,12 +157,12 @@ If knowledge changes inside a chapter, `draft-epochs` splits generation into mon
 
 ## Pilot controller
 
-`integrations/hermes/pilot_controller.py` is the preferred automated pilot path. Python owns the loop; Hermes is only the candidate generator.
+`integrations/hermes/pilot_controller.py` is the automated execution path. Python owns the loop; Hermes is only the candidate generator. It supports explicit project-specific canon/state source and SQLite paths; `writing-pilot --project <slug>` fills those from the named project's `project.json`.
 
 Conceptually:
 
 ```text
-rebuild stores
+rebuild that project's stores
  -> compile planning packet
  -> fresh Hermes call
  -> deterministic plan gate / finite repair
@@ -154,25 +177,13 @@ Use `--prepare-only` to test packet generation without invoking Hermes.
 
 ## Deterministic prose sensors
 
-The normalized evidence bus can use:
-
-- Vale / Harper / proselint / AiTells
-- retext
-- CSpell
-- plain-english
-- Slopless
-- spaCy
-- TextDescriptives
-- wordfreq
-- CMUdict
-- RapidFuzz
-- optional LanguageTool
+The normalized evidence bus can use Vale/Harper/proselint/AiTells, retext, CSpell, plain-english, Slopless, spaCy, TextDescriptives, wordfreq, CMUdict, RapidFuzz, and optional LanguageTool.
 
 Style tools are sensors, not laws. Hard gates are reserved for objective contract, canon, timeline, state, and disclosure violations.
 
 ## Current pilot status
 
-The v0.7.1 source snapshot was locally verified with **64/64 pytest tests passing**, Python compile checks, retext/Bash syntax checks, canon/state rebuilds, branch-specific canon/mechanics smoke checks, temporal state-diff checks, and pilot-controller `--prepare-only` validation. PowerShell wrappers must be exercised on the target Windows machine.
+The current source was locally regression-tested with **66/66 pytest tests passing**, including sparse isolated project creation and a named-project `prepare-only` controller smoke. The earlier v0.7 temporal/state/canon/disclosure tests remain green. PowerShell/Hermes Desktop execution is exercised on the target Windows installation rather than GitHub-hosted runners.
 
 ## Important docs
 
