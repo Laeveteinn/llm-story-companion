@@ -35,6 +35,7 @@ def test_sparse_project_initializer_builds_isolated_stores(tmp_path, monkeypatch
     assert ordinal == 1000001
     state = StoryStateLibrary(state_db)
     assert state.state_at(ordinal, branch='main') == {}
+    assert state.subject_registry()['Iri']['kind'] == 'character'
 
 
 def test_project_initializer_refuses_overwrite(tmp_path, monkeypatch):
