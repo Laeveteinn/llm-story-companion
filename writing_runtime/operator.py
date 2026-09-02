@@ -23,7 +23,11 @@ def _project_args(root: Path, slug: str) -> list[str]:
     missing = sorted(required - set(config))
     if missing:
         raise SystemExit(f'project config is incomplete ({slug}): missing {", ".join(missing)}')
-    return [
+    provider = config.get('provider')
+    model = config.get('model')
+    if bool(provider) != bool(model):
+        raise SystemExit(f'project model pin is incomplete ({slug}): provider and model must be set together')
+    result = [
         str(config['brief']),
         '--plan-id', str(config['plan_id']),
         '--chapter-key', str(config['chapter_key']),
@@ -37,6 +41,9 @@ def _project_args(root: Path, slug: str) -> list[str]:
         '--workdir', str(config['workdir']),
         '--out', str(config['out']),
     ]
+    if provider and model:
+        result += ['--provider', str(provider), '--model', str(model)]
+    return result
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -52,6 +59,9 @@ def main(argv: list[str] | None = None) -> int:
     pre = argparse.ArgumentParser(add_help=False)
     pre.add_argument('--project')
     known, remaining = pre.parse_known_args(raw)
+    # Explicit trailing CLI overrides remain possible; argparse uses the last
+    # occurrence, so a deliberate --provider/--model on this invocation can
+    # temporarily override a stored project pin without mutating project.json.
     args = _project_args(root, known.project) + remaining if known.project else raw
     proc = subprocess.run([sys.executable, str(controller), *args], cwd=root)
     return int(proc.returncode)
