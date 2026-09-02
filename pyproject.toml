@@ -21,6 +21,9 @@ nlp = [
 [project.scripts]
 write-runtime = "writing_runtime.cli:main"
 
+[tool.setuptools.packages.find]
+include = ["writing_runtime*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
