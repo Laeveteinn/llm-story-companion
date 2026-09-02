@@ -203,7 +203,7 @@ python write_runtime.py doctor
 python write_runtime.py tool-verify
 ```
 
-The last full pre-control-plane regression suite passed 66 tests. The managed-job, narrator-mode, and destructive-replacement guards add targeted regression tests; the Windows/Hermes job lifecycle must still be exercised on the target Desktop environment because this repository intentionally does not use GitHub-hosted runners.
+The post-control-plane regression reconstruction passed **73/73 pytest tests**, plus Python compile checks. It used the canonical v0.7.1 test tree overlaid with the exact published managed-job/project/controller modules and tests. The Windows/Hermes process lifecycle still needs target-machine exercise because this repository intentionally does not use GitHub-hosted runners.
 
 ## Important docs
 
