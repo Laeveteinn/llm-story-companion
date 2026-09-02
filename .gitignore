@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+node_modules/
+.runtime/
+runtime_state/
+canon/*.sqlite3
+state/*.sqlite3
+config/toolchain.lock.json
+*.tmp
+*.bak
