@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -10,6 +11,26 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 RUNTIME = ROOT / 'write_runtime.py'
 HERMES_CALL = Path(__file__).resolve().with_name('hermes_fresh_call.py')
+
+
+def _assert_harness_unchanged() -> None:
+    expected = os.environ.get('WRITING_HARNESS_HEAD')
+    if not expected:
+        return
+    git = shutil.which('git')
+    if not git or not (ROOT / '.git').exists():
+        raise RuntimeError('managed writing run cannot verify harness immutability: git checkout unavailable')
+    head = subprocess.run([git, 'rev-parse', 'HEAD'], cwd=ROOT, text=True, capture_output=True, check=True).stdout.strip()
+    dirty = subprocess.run(
+        [git, 'status', '--porcelain', '--untracked-files=no'],
+        cwd=ROOT, text=True, capture_output=True, check=True,
+    ).stdout.strip()
+    if head != expected or dirty:
+        detail = dirty.splitlines()[:20]
+        raise RuntimeError(
+            'tracked harness changed during managed writing run; aborting before further model/runtime work. '
+            f'expected_head={expected} actual_head={head} dirty={detail!r}'
+        )
 
 
 def run(args: list[str], *, allowed=(0,), capture=True) -> subprocess.CompletedProcess[str]:
@@ -23,7 +44,10 @@ def run(args: list[str], *, allowed=(0,), capture=True) -> subprocess.CompletedP
 
 
 def runtime(*args: str, allowed=(0,)) -> subprocess.CompletedProcess[str]:
-    return run([sys.executable, str(RUNTIME), *args], allowed=allowed)
+    _assert_harness_unchanged()
+    proc = run([sys.executable, str(RUNTIME), *args], allowed=allowed)
+    _assert_harness_unchanged()
+    return proc
 
 
 def parse_json_stdout(proc: subprocess.CompletedProcess[str]) -> dict:
@@ -38,8 +62,17 @@ def rooted(value: str) -> Path:
     return path.resolve() if path.is_absolute() else (ROOT / path).resolve()
 
 
+def _under(path: Path, parent: Path) -> bool:
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
 def hermes(prompt: Path, out: Path, *, manifest: Path | None, provider: str | None,
            model: str | None, safe_mode: bool, timeout: int) -> None:
+    _assert_harness_unchanged()
     cmd = [sys.executable, str(HERMES_CALL), '--prompt', str(prompt), '--out', str(out),
            '--project-root', str(ROOT), '--timeout', str(timeout)]
     if manifest is not None:
@@ -51,6 +84,7 @@ def hermes(prompt: Path, out: Path, *, manifest: Path | None, provider: str | No
     if safe_mode:
         cmd += ['--safe-mode']
     run(cmd, allowed=(0,))
+    _assert_harness_unchanged()
 
 
 def atomic_replace(src: Path, dst: Path) -> None:
@@ -95,7 +129,25 @@ def main(argv=None) -> int:
     if not state_source.exists():
         print(f'state source not found: {state_source}', file=sys.stderr); return 2
 
-    # Deterministic authority is rebuilt before any model call.
+    projects_root = (ROOT / 'projects').resolve()
+    if _under(brief, projects_root):
+        unsafe_defaults = {
+            (ROOT / 'canon_source').resolve(),
+            (ROOT / 'state_source').resolve(),
+            (ROOT / 'canon' / 'canon.sqlite3').resolve(),
+            (ROOT / 'state' / 'story_state.sqlite3').resolve(),
+        }
+        selected = {canon_source, state_source, canon_library, state_library}
+        if selected & unsafe_defaults:
+            print(
+                'named-project brief cannot use root fixture canon/state defaults; invoke writing-pilot --project <slug> '
+                'or pass that project\'s explicit authority paths.',
+                file=sys.stderr,
+            )
+            return 2
+
+    _assert_harness_unchanged()
+
     if not args.skip_setup:
         setup = ROOT / ('setup.ps1' if sys.platform.startswith('win') else 'setup.sh')
         if sys.platform.startswith('win'):
@@ -198,6 +250,7 @@ def main(argv=None) -> int:
             '--manifest-out', str(call_manifest), '--context-mode', 'fresh_call', '--json', allowed=(0,3)))
         action = routed.get('action')
         if action == 'accept':
+            _assert_harness_unchanged()
             output_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(chapter, output_path)
             print(json.dumps({

@@ -24,6 +24,7 @@ def test_sparse_project_initializer_builds_isolated_stores(tmp_path, monkeypatch
     assert config['state_source'] == 'projects/my-pilot/state_source'
     assert config['chapter_key'] == 'book1/ch01'
     assert config['viewpoint'] == 'Iri'
+    assert config['viewpoint_kind'] == 'character'
 
     canon_db = project / 'runtime_state' / 'canon.sqlite3'
     state_db = project / 'runtime_state' / 'story_state.sqlite3'
@@ -38,7 +39,26 @@ def test_sparse_project_initializer_builds_isolated_stores(tmp_path, monkeypatch
     assert state.subject_registry()['Iri']['kind'] == 'character'
 
 
-def test_project_initializer_refuses_overwrite(tmp_path, monkeypatch):
+def test_general_third_person_is_narrator_not_fake_character(tmp_path, monkeypatch):
+    monkeypatch.setattr(project_init, 'ROOT', tmp_path)
+    brief = tmp_path / 'brief.txt'
+    brief.write_text('General-third opening.\n', encoding='utf-8')
+
+    assert project_init.main([
+        str(brief), '--slug', 'wide-pov', '--title', 'Wide POV',
+        '--viewpoint', 'general third person', '--viewpoint-kind', 'narrator'
+    ]) == 0
+
+    project = tmp_path / 'projects' / 'wide-pov'
+    config = json.loads((project / 'project.json').read_text(encoding='utf-8'))
+    assert config['viewpoint_kind'] == 'narrator'
+    state = StoryStateLibrary(project / 'runtime_state' / 'story_state.sqlite3')
+    subject = state.subject_registry()['general third person']
+    assert subject['kind'] == 'other'
+    assert subject['metadata']['role'] == 'narrator'
+
+
+def test_project_initializer_requires_explicit_slug_for_replacement(tmp_path, monkeypatch):
     monkeypatch.setattr(project_init, 'ROOT', tmp_path)
     brief = tmp_path / 'brief.txt'
     brief.write_text('First premise.\n', encoding='utf-8')
@@ -48,6 +68,11 @@ def test_project_initializer_refuses_overwrite(tmp_path, monkeypatch):
     try:
         project_init.main(args)
     except SystemExit as exc:
-        assert 'already exists' in str(exc)
+        assert 'Refusing destructive replacement' in str(exc)
     else:
-        raise AssertionError('initializer must refuse to replace an existing project without --force')
+        raise AssertionError('initializer must refuse implicit replacement')
+
+    brief.write_text('Replacement premise.\n', encoding='utf-8')
+    assert project_init.main(args + ['--replace-existing', 'same']) == 0
+    project = tmp_path / 'projects' / 'same'
+    assert (project / 'brief.txt').read_text(encoding='utf-8') == 'Replacement premise.\n'

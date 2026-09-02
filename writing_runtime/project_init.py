@@ -39,11 +39,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument('--slug', required=True)
     ap.add_argument('--title', required=True)
     ap.add_argument('--viewpoint', required=True)
+    ap.add_argument('--viewpoint-kind', choices=('character', 'narrator'), default='character')
     ap.add_argument('--chapter-key', default='book1/ch01')
     ap.add_argument('--at', help='Timeline key; defaults to --chapter-key')
     ap.add_argument('--ordinal', type=int, help='Required for timeline keys other than bookN/chM.')
     ap.add_argument('--branch', default='main')
-    ap.add_argument('--force', action='store_true')
+    ap.add_argument(
+        '--replace-existing', metavar='SLUG',
+        help='Destructively replace an existing project only when this exact normalized slug is supplied.',
+    )
     args = ap.parse_args(argv)
 
     slug = _safe_slug(args.slug)
@@ -71,9 +75,17 @@ def main(argv: list[str] | None = None) -> int:
 
     project = ROOT / 'projects' / slug
     if project.exists():
-        if not args.force:
-            raise SystemExit(f'project already exists: {project}')
+        supplied = _safe_slug(args.replace_existing) if args.replace_existing else None
+        if supplied != slug:
+            raise SystemExit(
+                f'project already exists: {project}. Refusing destructive replacement. '
+                f'Only after explicit user approval, rerun with --replace-existing {slug}'
+            )
         shutil.rmtree(project)
+    elif args.replace_existing:
+        supplied = _safe_slug(args.replace_existing)
+        if supplied != slug:
+            raise SystemExit(f'--replace-existing must exactly name the target slug {slug!r}')
 
     canon_source = project / 'canon_source'
     state_source = project / 'state_source'
@@ -93,12 +105,15 @@ def main(argv: list[str] | None = None) -> int:
         }],
         'entries': [],
     })
+    subject = {
+        'id': viewpoint,
+        'kind': 'character' if args.viewpoint_kind == 'character' else 'other',
+        'writer_safe': True,
+    }
+    if args.viewpoint_kind == 'narrator':
+        subject['role'] = 'narrator'
     _dump_yaml(state_source / 'project.yaml', {
-        'subjects': [{
-            'id': viewpoint,
-            'kind': 'character',
-            'writer_safe': True,
-        }],
+        'subjects': [subject],
         'events': [],
         'invariants': [],
     })
@@ -125,6 +140,7 @@ def main(argv: list[str] | None = None) -> int:
         'slug': slug,
         'title': title,
         'viewpoint': viewpoint,
+        'viewpoint_kind': args.viewpoint_kind,
         'chapter_key': chapter_key,
         'at': at,
         'branch': 'main',
@@ -146,9 +162,10 @@ def main(argv: list[str] | None = None) -> int:
         'project_root': str(project),
         'project_config': str(project_json),
         'brief': str(brief_path),
+        'viewpoint_kind': args.viewpoint_kind,
         'canon_library': str(canon_library),
         'state_library': str(state_library),
-        'next': f'writing-pilot --project {slug} --skip-setup',
+        'next': f'writing-project-model {slug} --provider <provider> --model <model>',
     }, indent=2, ensure_ascii=False))
     return 0
 

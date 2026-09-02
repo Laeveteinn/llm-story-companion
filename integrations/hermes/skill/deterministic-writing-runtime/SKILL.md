@@ -1,6 +1,6 @@
 ---
 name: deterministic-writing-runtime
-description: Operate the deterministic fiction runtime from normal Hermes conversation, including Hermes Desktop GUI. Initialize named stories and use writing-pilot for end-to-end runs; Python owns all gates and recursion.
+description: Operate the deterministic fiction runtime from normal Hermes conversation, including Hermes Desktop GUI. Named projects use managed writing-pilot jobs; Python owns gates, recursion, model routing, and acceptance.
 version: 0.7.1
 author: Project-local
 license: MIT
@@ -14,15 +14,17 @@ metadata:
 
 # Deterministic Writing Runtime
 
-## When to Use
+## Operator Contract
 
-Use this skill whenever the user asks Hermes to start a new story/pilot, plan, draft, continue, revise, repair, chronobreak, inspect, or run a writing pilot with the deterministic writing harness.
+Interactive Hermes/Desktop is only the conversational operator. It may capture the user's brief, initialize/pin a named project, start/cancel a managed pilot, poll its status, and report deterministic results. It must **not** manually recreate planning, drafting, critique, repair, canon promotion, or acceptance.
 
-The intended UX is conversational, including Hermes Desktop GUI. Do **not** make the user manually execute low-level runtime commands unless they explicitly ask for them.
+For normal writing operations, the tracked harness source is immutable. Never edit Python, tests, `.hermes.md`, the installed skill, root canon/state fixtures, or tracked configuration in response to a pilot failure. Never hand-edit project canon/state to bypass a gate. Never invent compatibility files such as `model_pin.yaml`.
 
-## GUI / Working-Directory Rule
+If a managed run reports `failed`, `orphaned`, `harness_modified`, `blocked_harness_dirty`, or `human_review`, stop and report that state plus the provided log/status. Do not debug or repair the harness unless the user explicitly switches to a harness-maintenance/debugging request.
 
-Do not require the Hermes Desktop session to be opened in the harness repository. The supported GUI entry points are globally installed commands:
+## Supported GUI Commands
+
+The supported CWD-independent entry points are:
 
 ```text
 writing-project-init
@@ -30,130 +32,119 @@ writing-project-model
 writing-pilot
 ```
 
-They resolve the editable harness checkout from the installed `writing_runtime` package. The current GUI terminal CWD is not a trust boundary.
+Fallback module forms are only:
 
-If those commands are unavailable, use `python -m writing_runtime.project_init`, `python -m writing_runtime.project_model`, or `python -m writing_runtime.operator`. If those also fail, report that the checkout must be updated and `python -m pip install -e .` run again. Do not hunt the filesystem for another copy or silently clone a second runtime.
+```text
+python -m writing_runtime.project_init
+python -m writing_runtime.project_model
+python -m writing_runtime.operator
+```
 
-## Model Pinning Rule
+Do not guess alternate module names such as `writing_runtime.pilot` or `writing_runtime.pilot_controller`. Do not call `integrations/hermes/pilot_controller.py` directly for a named project; `writing-pilot --project <slug>` is the authority-aware entry point.
 
-A named writing project must use an explicit, stable Hermes provider/model pair. Never let a project silently inherit Hermes Desktop's last-used model, `model.default`, or another mutable global default.
+## Model Pinning
 
-Before the first generative run of a named project, ensure `projects/<slug>/project.json` contains both `provider` and `model`. If not, obtain the desired writing model/provider from the user or from an explicit model choice they have already supplied, then run:
+Every named project must contain an explicit Hermes provider/model pair in `projects/<slug>/project.json`. Never inherit Hermes Desktop's last-used model or another mutable default.
+
+Pin or deliberately change it with:
 
 ```text
 writing-project-model <slug> --provider <provider> --model <model>
 ```
 
-After pinning, `writing-pilot --project <slug>` passes that provider/model pair to every fresh planning, drafting, and repair child process. If the project is unpinned, the operator intentionally fails closed instead of inheriting Desktop state.
+Both values are required. Do not infer an exact provider/model identifier when the user has not supplied it and it cannot be read from an existing explicit configuration; ask the user instead.
 
-To deliberately change a project's writing model, update the pin explicitly with `writing-project-model`; do not rely on selecting another model in the GUI. A one-run explicit `--provider ... --model ...` override is allowed only when the user intentionally requests it.
+## New User-Owned Story
 
-## New / Own Story Pilot
+For a new/my/own story:
 
-When the user says **new pilot**, **my pilot**, **my story**, **start a new project**, or supplies a fresh premise that is not the built-in fixture:
+1. Never use the Mara/Sable Bind fixture stores.
+2. Save the user's premise, chapter intent, style, length, and supplied world details faithfully to a UTF-8 brief. Do not generate a giant bible before Chapter 1.
+3. Obtain the title and viewpoint mode. For a named character POV use `--viewpoint-kind character`. For omniscient/general-third/no central POV use `--viewpoint-kind narrator`; do not register "general third person" as a character.
+4. Initialize once:
 
-1. **Never use Mara/Sable Bind/example canon or state.** Those are test fixtures only.
-2. Capture the user's premise, first-chapter intent, stylistic/length constraints, and other supplied material faithfully into one UTF-8 brief file. Do not invent a large story bible in the interactive GUI conversation.
-3. Obtain only genuinely required metadata not already supplied:
-   - project title;
-   - first viewpoint character/name;
-   - writing provider/model to pin for deterministic child calls.
-   Infer a filesystem-safe slug from the title and tell the user what slug is being used. Default the first chapter/timeline coordinate to `book1/ch01` unless the user specifies otherwise.
-4. Run the deterministic sparse initializer:
-
-```powershell
-writing-project-init <brief-file> `
-  --slug <slug> `
-  --title "<title>" `
-  --viewpoint "<viewpoint>"
+```text
+writing-project-init <brief-file> --slug <slug> --title <title> --viewpoint <viewpoint> --viewpoint-kind <character|narrator>
 ```
 
-5. The initializer creates an isolated local project under `projects/<slug>/` with its own premise, timeline, canon source, state source, compiled stores, runtime state, and manuscript directory. It intentionally begins with empty canon entries/state rather than hallucinating a prewritten bible.
+5. If the project already exists, **stop**. Never add a destructive flag on your own. Only if the user explicitly says to discard/restart/replace that project may you rerun initialization with:
+
+```text
+--replace-existing <exact-slug>
+```
+
 6. Pin the requested provider/model with `writing-project-model`.
-7. If initialization and pinning succeed, run:
+7. Start the managed pilot as described below.
 
-```powershell
-writing-pilot --project <slug> --skip-setup
-```
+`projects/` is ignored by the public harness repository. Never publish a story project unless the user explicitly asks.
 
-8. Report the initializer/controller's actual status and artifact paths. If either returns a deterministic failure or `human_review`, stop. Do not improvise a replacement workflow.
+## Managed Pilot Jobs — Default for Named Projects
 
-`projects/` is ignored by the public harness repository by default. Never push a user's story project into the public harness repo unless the user explicitly requests that publication/version-control behavior.
-
-## Existing Named Project
-
-For an existing project created by `writing-project-init`, first ensure its model pin is present, then invoke:
+Start one project run with:
 
 ```text
 writing-pilot --project <slug> --skip-setup
 ```
 
-The project config supplies its own brief, plan/timeline coordinates, canon/state sources, compiled libraries, work directory, manuscript output, provider, and model. Do not substitute the root example stores or mutable Hermes defaults.
+For named projects this is intentionally **non-blocking**. It returns a structured `started` result with a run ID, pinned provider/model, job file, log file, and a status command. Do not wait on a long terminal call and do not treat GUI tool timeout as controller failure.
 
-## Conversational Operator Rule
+Poll only with:
 
-Interactive Hermes/Desktop is the **operator**, not the planner/writer/controller.
+```text
+writing-pilot --project <slug> --status
+```
 
-For an end-to-end writing request:
+If status is `starting` or `running`, poll again later. If another start request returns `already_running`, do not launch another controller. A project may have only one managed pilot at a time.
 
-1. Capture the user's requested brief faithfully without reading hidden canon/state into the current interactive conversation.
-2. Ensure the named project's provider/model is explicitly pinned.
-3. Invoke `writing-pilot` once, either with `--project <slug>` or explicit coordinates for an intentionally low-level run.
-4. Let `pilot_controller.py` own planning, fresh child Hermes calls, disclosure epochs, deterministic gates, finite repair, Occam salvage, acceptance, and `human_review`.
-5. Do not manually recreate the controller's plan/draft/repair loop in the interactive session.
-6. Never convert a controller failure into a conversational "looks good" success.
-7. If the controller returns `human_review` or a request/contract failure, stop generative recursion and show the user the deterministic result.
+To stop an active run when the user requests it:
 
-### Built-in fixture defaults
+```text
+writing-pilot --project <slug> --cancel
+```
 
-Only when the user explicitly asks for the **current/example/Mara fixture**, use:
+`orphaned` is deliberately fail-closed: report it and do not automatically restart. `failed` includes the tail of the controller log; report it, do not patch the harness. `harness_modified` means tracked source changed during the run and the result is untrusted.
 
-- `plan-id`: `pilot.first.ch05`
-- `chapter-key`: `book1/ch05`
-- `at`: `book1/ch05`
-- `branch`: `main`
-- `viewpoint`: `Mara`
-- `workdir`: `runtime_state/pilot-first`
-- `out`: `runtime_state/pilot-first/final-chapter.txt`
+`--foreground` exists for explicit human debugging only. Do not use it for normal Hermes Desktop writing.
 
-Do not silently apply these values to a real project.
+## Harness Immutability
 
-## Why the Interactive GUI Session Must Not Draft
+Before a managed run, `writing-pilot` checks tracked Git files. A dirty tracked harness returns `blocked_harness_dirty` and does not start. The ignored `projects/` tree is not part of this check.
 
-The controller deliberately spawns a fresh one-turn Hermes process for every generative phase. This allows one underlying model to be reused while preventing an accumulating Desktop conversation from carrying author-only information across planning, disclosure epochs, and repairs.
+The managed worker pins the current Git HEAD, and the controller rechecks tracked source before and after deterministic runtime/model phases and before accepting prose. If tracked source changes mid-run, generation aborts instead of adapting to the mutation.
 
-The interactive Hermes session may know the user's brief and public/operator metadata. It should **not** read author-only planning packets or hidden canon merely to narrate what the controller is doing. Treat generated plan prompts, private validator literals, and author-scope state as controller-private unless the user explicitly requests inspection.
+Therefore, on any harness-source problem during a normal writing operation: **report and stop**. Do not `git reset`, `git pull`, patch source, reinstall packages, or change skill files unless the user explicitly asks for maintenance.
 
-## Low-Level Operations
+## Controller Ownership
 
-Use low-level runtime commands directly only for explicit inspection/maintenance operations or when debugging a failed pilot:
+Once started, `pilot_controller.py` owns:
 
-1. Run the relevant deterministic preflight (`state-audit`, `plan-check`, `quality`, `doctor`, `tool-verify`) before claiming an artifact is valid.
-2. Use only prompt files emitted by `write_runtime.py` for recursive plan/prose repair. Never turn raw lint output into an ad-hoc rewrite prompt.
-3. Respect process exit codes. A hard failure remains a failure until the deterministic gate changes state.
-4. For drafting, use disclosure epochs whenever required. Never resume a model context across epochs.
-5. Apply responses only through the runtime's request-bound apply commands.
-6. Use `plan-repair-next` / `repair-next` for recursion routing. Do not invent extra critique loops after `human_review`.
-7. Preserve immutable anchors during Occam salvage. The runtime, not the model, reassembles accepted text.
+- rebuilding the selected project's canon/state stores;
+- fresh Hermes planning calls;
+- typed plan validation and bounded plan repair;
+- disclosure epochs;
+- fresh drafting calls;
+- deterministic assembly/quality/canon/state gates;
+- bounded prose repair/salvage;
+- `accepted` vs `human_review`/failure.
 
-## Chronobreak Operations
+Fresh child calls use a minimal Hermes toolset and do not inherit the interactive Desktop conversation. Never expose hidden author packets to the interactive session merely to narrate progress.
 
-For a requested retroactive rewrite, use the runtime's `chronobreak` command to create a child timeline rather than destructively editing history. Treat branch identity as part of every subsequent plan/draft/repair request. Do not carry abandoned parent-future state into the child branch unless the deterministic runtime re-injects them.
+A project brief under `projects/` is forbidden from silently falling back to the root fixture canon/state stores. If such a low-level invocation is attempted, the controller fails and tells you to use the named-project operator.
 
-## Same-Model Rule
+## Existing Project
 
-Phase names are not trust boundaries. Planner, writer, repairer, and interactive operator may all use the same underlying model weights. Isolation comes from deterministic context compilation and fresh child processes, not persona labels or promises to forget.
+For an existing initialized project, do not reinitialize it to continue writing. Verify its explicit model pin, then use the managed `writing-pilot --project <slug>` path. Project config supplies its own brief, timeline coordinates, canon/state sources, compiled libraries, work directory, manuscript output, provider, and model.
 
-## Verification
+## Built-In Fixture
 
-Before declaring a project operation complete, rely on the deterministic gate that owns the artifact and report its actual pass/fail state.
+Only when the user explicitly asks for the example/Mara fixture may you use the root fixture defaults (`book1/ch05`, `main`, `Mara`, `pilot.first.ch05`). Never silently apply them to a real project.
 
-For an accepted pilot, report at minimum:
+## Low-Level Maintenance
 
-- project slug;
-- pinned provider/model;
-- controller status (`accepted` or `human_review`/failure);
-- final chapter path if accepted;
-- plan/work directory paths;
-- branch used;
-- any non-blocking analyzer/tool warnings.
+Direct `write_runtime.py` gates, manual store inspection, source edits, Git repair, and foreground controller calls are maintenance/debugging operations. Perform them only when the user explicitly asks to inspect or repair the harness itself, not as an automatic response to a writing-run failure.
+
+For deterministic repair, use only prompts/manifests emitted by the runtime and respect finite retry budgets. If any path reaches `human_review`, stop.
+
+## Reporting
+
+For a managed project operation report the actual structured state. On acceptance include at least project slug, pinned provider/model, final chapter path, branch, and job/log location. On failure include the status and log tail supplied by `--status`; do not reinterpret it as success.
