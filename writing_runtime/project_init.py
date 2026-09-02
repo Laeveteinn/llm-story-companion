@@ -94,7 +94,11 @@ def main(argv: list[str] | None = None) -> int:
         'entries': [],
     })
     _dump_yaml(state_source / 'project.yaml', {
-        'subjects': [],
+        'subjects': [{
+            'id': viewpoint,
+            'kind': 'character',
+            'writer_safe': True,
+        }],
         'events': [],
         'invariants': [],
     })
