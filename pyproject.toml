@@ -20,6 +20,7 @@ nlp = [
 
 [project.scripts]
 write-runtime = "writing_runtime.cli:main"
+writing-pilot = "writing_runtime.operator:main"
 
 [tool.setuptools.packages.find]
 include = ["writing_runtime*"]
