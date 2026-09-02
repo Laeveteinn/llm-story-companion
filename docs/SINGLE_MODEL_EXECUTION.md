@@ -62,6 +62,7 @@ If Hermes is operating as one continuing conversation and cannot spawn fresh inf
 
 Do not use a persistent conversation that has already been exposed to author-only canon and then switch to `persistent_safe`. Once exposed, that conversation is contaminated for disclosure-sensitive writing and should be abandoned.
 
+
 ## Within-chapter knowledge changes
 
 If `draft-prompt` reports that a plan requires disclosure epochs, do not bypass the refusal. Use `draft-epochs`. Every `E###.prompt.txt` is a separate model invocation with an empty context, even though the model weights/runtime are identical.

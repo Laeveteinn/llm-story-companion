@@ -1,0 +1,103 @@
+timeline_points:
+- key: book1/ch03
+  ordinal: 1000003
+  label: Book 1, Chapter 3
+- key: book1/ch05
+  ordinal: 1000005
+  label: Book 1, Chapter 5
+- key: book1/ch09
+  ordinal: 1000009
+  label: Book 1, Chapter 9
+entries:
+- id: ability.sable_bind
+  title: Sable Bind
+  status: active
+  disclosure_state: partial
+  summary: A binding technique whose current canonical behavior is defined here.
+  triggers:
+  - Sable Bind
+  - sable-binding
+  aliases:
+  - black tether
+  facts:
+  - key: effect
+    value: Restrains a moving target when the contest succeeds.
+    status: canon
+    critical: true
+    disclosure_state: partial
+    triggers:
+    - restrains a moving target
+    - binding a moving target
+  - key: resistance_model
+    value: Resistance is a contested roll rather than a fixed DC.
+    status: canon
+    critical: true
+    disclosure_state: hidden
+    triggers:
+    - contested roll
+    - resistance is contested
+    - d20 + 5
+  - key: upper_limit
+    value: null
+    status: tbd
+    critical: true
+  - key: resistance_model
+    value: Resistance uses a fixed DC 17 on this retcon branch.
+    status: canon
+    critical: true
+    disclosure_state: hidden
+    branch: retcon.bind_fixed_dc
+    valid_from: book1/ch05
+    triggers:
+    - fixed DC 17
+    - resistance uses DC 17
+  knowledge:
+    Mara:
+      level: partial
+      reveals:
+      - at: book1/ch03
+        fact_key: effect
+        fact: Knows the bind restrains a moving target.
+      - at: book1/ch09
+        fact_key: resistance_model
+        fact: Learns that resistance is contested rather than fixed.
+      - at: book1/ch05
+        branch: retcon.bind_fixed_dc
+        fact_key: resistance_model
+        fact: Learns that resistance is fixed at DC 17 on this branch.
+    default:
+      level: unknown
+      reveals: []
+  timeline:
+  - at: book1/ch03
+    event: First observed use.
+  - at: book1/ch09
+    event: Contest mechanic revealed.
+  - at: book1/ch05
+    branch: retcon.bind_fixed_dc
+    event: Resistance rule is retroactively fixed at DC 17.
+  mechanics:
+    implemented: true
+    resolution:
+      attacker: d20 + 5
+      defender: d20
+      success: attacker_total > defender_total
+    notes: Ties fail unless canon is explicitly changed.
+  mechanic_versions:
+  - key: resolution
+    branch: retcon.bind_fixed_dc
+    valid_from: book1/ch05
+    value:
+      target: DC 17
+      success: attacker_total >= 17
+  - key: notes
+    branch: retcon.bind_fixed_dc
+    valid_from: book1/ch05
+    value: Retcon branch replaces the contested resistance roll with fixed DC 17.
+timeline_branches:
+- id: retcon.bind_fixed_dc
+  parent: main
+  fork_at: book1/ch05
+  kind: retcon
+  label: Pilot retroactive rewrite at Chapter 5
+  writer_safe: true

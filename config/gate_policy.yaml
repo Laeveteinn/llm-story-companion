@@ -1,0 +1,71 @@
+version: 1
+# This is an evidence/risk gate, not a literary-quality score.
+chapter_suspicion_threshold: 24
+paragraph_suspicion_threshold: 7
+consensus_bonus_per_extra_source: 0.75
+consensus_bonus_cap: 2.0
+
+hard_fail_codes:
+  - canon.unrevealed_reference
+  - plan.prose_context_mismatch
+  - plan.prose_missing_required_term
+  - plan.prose_forbidden_term
+  - contract.*
+
+severity_weights:
+  suggestion: 0.35
+  info: 0.15
+  warning: 1.25
+  error: 4
+  hard: 10
+
+weights:
+  canon.unrevealed_reference: 10
+  plan.prose_context_mismatch: 10
+  plan.prose_missing_required_term: 10
+  plan.prose_forbidden_term: 10
+  plan.prose_plan_echo: 2.0
+  plan.prose_word_budget_low: 1.25
+  plan.prose_word_budget_high: 1.25
+  lexical.word_burst: 1.75
+  retext.repeated-words.*: 3
+  retext.indefinite-article.*: 2.5
+  retext.redundant-acronyms.*: 2
+  retext.contractions.*: 2
+  cspell.unknown_word: 1.5
+  languagetool.*: 1.0
+  plain-english.*: 0.35
+  slopless.*: 0.35
+  rapidfuzz.near_duplicate_paragraph: 1.25
+  vale.Harper.*: 1.5
+  vale.AiTells.*: 0.25
+  vale.proselint.*: 0.5
+  prose.*: 0.35
+  profile.*: 0.5
+
+lexical_burst:
+  min_count: 10
+  min_per_1k: 4.0
+  min_word_length: 4
+  allow: []
+
+repair:
+  max_full_rewrite_attempts: 2
+  max_salvage_attempts: 1
+  # Same-model + same-conversation mode is deliberately more conservative.
+  persistent_max_full_rewrite_attempts: 1
+  persistent_max_salvage_attempts: 1
+
+salvage:
+  paragraph_cut_threshold: 7
+  context_cull_radius: 1
+  max_cull_fraction: 0.50
+
+near_duplicate:
+  paragraph_similarity: 90.0
+  min_words: 12
+  max_pairs: 20
+
+plan_echo:
+  min_phrase_words: 8
+  max_findings: 16

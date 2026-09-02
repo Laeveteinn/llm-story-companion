@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "deterministic-writing-runtime"
+version = "0.7.1"
+description = "Deterministic fiction runtime with semantic narrative state, disclosure-safe single-model execution, evidence and bounded salvage"
+requires-python = ">=3.10"
+dependencies = ["PyYAML>=6,<7", "pydantic==2.13.4", "networkx==3.6.1"]
+
+[project.optional-dependencies]
+nlp = [
+  "spacy==3.8.16",
+  "textdescriptives==2.8.4",
+  "wordfreq==3.1.1",
+  "cmudict==1.1.3",
+  "rapidfuzz==3.14.5",
+]
+
+[project.scripts]
+write-runtime = "writing_runtime.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

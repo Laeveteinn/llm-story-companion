@@ -1,0 +1,16 @@
+{
+  "version": "0.2",
+  "language": "en,en-GB,en-US,en-CA",
+  "useGitignore": true,
+  "allowCompoundWords": true,
+  "maxNumberOfProblems": 250,
+  "dictionaryDefinitions": [
+    {
+      "name": "canon-terms",
+      "path": "./config/canon-terms.txt",
+      "addWords": true
+    }
+  ],
+  "dictionaries": ["canon-terms"],
+  "ignorePaths": ["node_modules/**", ".vale/**", "runtime_state/**", "canon/*.sqlite3"]
+}

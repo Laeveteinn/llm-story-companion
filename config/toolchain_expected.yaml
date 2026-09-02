@@ -1,0 +1,31 @@
+version: 1
+node:
+  minimum_major: 22
+  minimum_version: 22.18.0
+npm:
+  cspell: 10.1.1
+  retext-contractions: 6.0.0
+  retext-english: 5.0.0
+  retext-indefinite-article: 5.0.0
+  retext-intensify: 7.0.0
+  retext-passive: 5.0.0
+  retext-redundant-acronyms: 5.0.0
+  retext-repeated-words: 5.0.0
+  retext-stringify: 4.0.0
+  unified: 11.0.5
+  plain-english: 1.0.0
+  slopless: 0.2.36
+vale:
+  target: 3.17.0
+python:
+  pydantic: 2.13.4
+  networkx: 3.6.1
+  spacy: 3.8.16
+  cmudict: 1.1.3
+  textdescriptives: 2.8.4
+  wordfreq: 3.1.1
+  rapidfuzz: 3.14.5
+optional_runtime:
+- textdescriptives
+- wordfreq
+- languagetool

@@ -1,66 +1,64 @@
-# v0.5.0 Handoff — Single-Model Deterministic Runtime
+# v0.7.1 Handoff — Temporal Recursive Deterministic Writing Pilot
 
 ## Canonical state
 
-This tree is the current clean-room deterministic writing harness. It assumes **one underlying model may perform planning, drafting, and every repair attempt**. Phase labels are not trust boundaries. The Python runtime is the controller; the model only proposes typed plans or bounded prose candidates.
+This tree is the current pilot-ready deterministic fiction runtime. One underlying model may perform every generative phase. The runtime owns authority, chronology, branching, context compilation, contracts, retry budgets, repair routing, and accepted outputs.
 
 ## Verified locally
 
-- `python -m compileall -q writing_runtime` — PASS
-- `node --check tools/retext-lint.mjs` — PASS
-- `bash -n setup.sh` — PASS
-- `python -m pytest -q` — **46 passed**
-- two-epoch disclosure compile smoke — PASS
-- pre-reveal prompt contains no later fact triggers — PASS
-- multi-epoch `persistent_safe` refusal — PASS
-- epoch response validation + software assembly — PASS
+- Python compileall — PASS
+- retext JavaScript syntax — PASS
+- Bash setup/install wrappers syntax — PASS
+- `python -m pytest -q` — **64 passed**
+- canon schema v5 rebuild — PASS
+- narrative-state schema v3 rebuild — PASS
+- main/retcon state diff smoke — PASS
+- branch-specific canon fact/reveal/mechanic smoke — PASS
+- temporal pilot controller `--prepare-only` — PASS
+- no GitHub Actions/hosted runners used
 
-No GitHub Actions/hosted runners are required or intended.
+PowerShell is not available in the build container, so `.ps1` wrappers are present but must be exercised on the target Windows machine.
 
-## Major v0.5 changes
+## Major v0.7 changes
 
-1. **Same-model threat model.** Planner/writer/controller are phases executed by one potentially identical model. Independent-model review is not assumed anywhere.
-2. **Context contracts.** `fresh_call` permits author-only planning but requires an empty context for every generation/repair call and discard afterward. `persistent_safe` withholds author-only truth from every prompt and uses reduced retry budgets.
-3. **Cycle/no-progress detection.** Candidate SHA-256 and deterministic evidence fingerprints stop A/B oscillation and repeated identical failures from consuming the full rewrite budget.
-4. **Localized reinjection.** Hash-bound scene/beat provenance slices the accepted writer plan to the failing beat neighborhood instead of reinjecting the whole plan on every repair.
-5. **Plan-language echo evidence.** Exact plan-to-prose n-gram copying is mechanically observable as evidence.
-6. **Disclosure epochs.** A fact first revealed mid-chapter is physically absent from earlier generation packets. `draft-prompt` refuses unsafe monolithic drafting; `draft-epochs` produces fresh-call epoch prompts and `draft-epochs-apply` validates/reassembles them.
-7. **Future-reveal priming gate.** Literal protected fact phrases in writer goals/directives before their scheduled reveal beat are hard plan failures.
+1. **Temporal branches.** Immutable `timeline_branch` history replaces destructive rewind. Ancestors are visible only through child fork points.
+2. **Three temporal axes.** Fact validity, character knowledge acquisition, and timeline branch remain separate.
+3. **Branch-aware mechanics.** Attached mechanics are versioned by branch/time; a retcon cannot inherit obsolete mechanical rules through the author context.
+4. **Branch-contract plans.** `ChapterPlan.timeline_branch` is fixed by request manifests and carried into writer surfaces. Stale main-timeline plans fail if retcon state invalidates their preconditions.
+5. **Chronobreak CLI.** `write_runtime.py chronobreak` creates a non-destructive YAML branch overlay and refuses silent overwrite.
+6. **Temporal inspection.** `state-branches`, `state-history`, and `state-diff` expose branch replay/differences mechanically.
+7. **Automated Hermes install.** Git checkout installer resolves/detaches a commit, verifies required runtime files, records the source commit, and runs bootstrap.
+8. **Pilot controller.** `integrations/hermes/pilot_controller.py` executes plan -> finite plan repair -> disclosure epochs -> finite prose repair using fresh Hermes subprocess calls.
+9. **Open-source wheel gate.** Permissive maintained components must be evaluated before growing another subsystem; Bookwright is an external benchmark, not a dependency.
 
-## Trust rules
+## Temporal pilot fixture
 
-- YAML is editable source; compiled SQLite is runtime canon/state.
-- A model-authored plan is untrusted until `PlanGate` passes.
-- Raw analyzer messages never become model instructions.
-- Hidden validator phrases remain private; bad source literals are redacted before reinjection.
-- A model response never writes directly to accepted text. Contracts and software extraction/reassembly sit in front of mutation.
-- Previous model explanations/critic prose are not recursion state.
-- Every plan/prose repair state machine is finite.
-- A fresh prompt manifest cannot prove an external client actually cleared KV/chat state; the executor must honor it.
+`retcon.bind_fixed_dc` forks `main` at `book1/ch05`.
 
-## Preferred execution
+- `main`: Sable Bind later reveals contested resistance and Mara retains the knife.
+- retcon branch: resistance is fixed DC 17 from the fork and knife ownership is removed.
+- branch-specific mechanic resolution also changes to fixed DC 17.
 
-```text
-fresh model call -> plan candidate -> deterministic plan gate
-fresh model call(s) -> disclosure epoch prose -> deterministic assembly/gate
-fresh model call -> bounded rewrite if needed -> deterministic gate
-fresh model call -> Occam gap fill if needed -> deterministic gate
-stop: accept or human_review
-```
+A stale copy of the main example plan moved onto the retcon branch is intentionally rejected because its knife-possession precondition no longer holds.
 
-The same GGUF/model/runtime may be reused for every arrow.
+## Execution modes
 
-## Optional analyzers
+- **fresh_call**: required for strong disclosure isolation and the pilot controller. Same model is fine; every generative call starts empty and is discarded afterward.
+- **persistent_safe**: degraded interactive fallback. Hidden author truth is withheld from every prompt; multi-epoch isolation is refused.
 
-The intended deterministic sensor stack remains Vale/Harper/proselint/AiTells, retext, CSpell, plain-english, Slopless, spaCy, TextDescriptives, wordfreq, CMUdict, RapidFuzz, plus optional standalone LanguageTool. Missing optional sensors do not disable canon/plan/contracts/state/repair core behavior.
+## GitHub/public install boundary
 
-The container used to build this handoff cannot resolve the full npm/Vale installation, so do **not** treat its partial environment as the production tool lock. The first successful target-machine setup should create `package-lock.json`; subsequent installs use `npm ci`.
+The runtime contains a deterministic clone/install script, but the connected GitHub API exposed to this build does not provide repository visibility mutation. The existing `Laeveteinn/llm-story-companion` repository therefore cannot be made public by this runtime. Once the repository is public *and contains the expanded source tree*, Hermes/user setup can be one unattended install command. No GitHub compute is needed.
+
+## Bookwright benchmark
+
+Bookwright's published CLI can be installed via `uvx --from bookwright-cli ...`, but this build container cannot resolve/install the package over the network. No benchmark result is claimed. `benchmarks/bookwright/README.md` defines planted comparison failures for a target-machine run.
 
 ## Read next
 
-- `docs/HOSTILE_REVIEW_V5_SINGLE_MODEL.md`
-- `docs/SINGLE_MODEL_EXECUTION.md`
-- `docs/DISCLOSURE_EPOCHS.md`
-- `docs/REINJECTION_FIREWALL.md`
-- `docs/DETERMINISTIC_REPAIR.md`
-- `docs/HERMES_WORKFLOW.md`
+- `docs/TEMPORAL_MODEL.md`
+- `docs/HOSTILE_REVIEW_V7_TEMPORAL.md`
+- `docs/HOSTILE_REVIEW_V7_OPEN_SOURCE_WHEELS.md`
+- `docs/SEMANTIC_NARRATIVE_STATE.md`
+- `docs/HOSTILE_REVIEW_V6_HERMES.md`
+- `integrations/hermes/README.md`

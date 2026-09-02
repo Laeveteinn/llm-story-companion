@@ -1,0 +1,13 @@
+name: diagnostic_fantasy_seed
+pass_score: 80
+# Intentionally broad seed bands. Replace with `calibrate` output from approved prose.
+metrics:
+  sentence_words_mean: {min: 8, max: 28, weight: 1}
+  sentence_length_cv: {min: 0.35, max: 1.10, weight: 2}
+  short_sentence_ratio: {min: 0.03, max: 0.45, weight: 1}
+  long_sentence_ratio: {min: 0.00, max: 0.35, weight: 1}
+  msttr_50: {min: 0.55, max: 0.90, weight: 1}
+  repeated_bigram_ratio: {min: 0.00, max: 0.10, weight: 2}
+  repeated_sentence_start_ratio: {min: 0.00, max: 0.18, weight: 2}
+  filter_phrase_per_1k: {min: 0, max: 5, weight: 1}
+  adverb_ratio: {min: 0, max: 0.04, weight: 0.5}

@@ -1,0 +1,17 @@
+version: 1
+# Evidence threshold for a structurally valid plan. Hard failures always fail regardless of score.
+plan_suspicion_threshold: 12
+plan_beat_suspicion_threshold: 5
+max_writer_directive_words: 90
+reveal_burst_warning: 3
+require_viewpoint_in_scene: true
+duplicate_directive_similarity: 0.94
+duplicate_directive_min_words: 8
+
+plan_repair:
+  max_salvage_attempts: 2
+  max_full_rewrite_attempts: 1
+  persistent_max_salvage_attempts: 1
+  persistent_max_full_rewrite_attempts: 1
+  beat_context_radius: 1
+  max_cull_fraction: 0.50

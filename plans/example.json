@@ -1,0 +1,89 @@
+{
+  "plan_version": 1,
+  "plan_id": "book1.ch05.example",
+  "chapter_key": "book1/ch05",
+  "timeline_key": "book1/ch05",
+  "viewpoint": "Mara",
+  "writer_goal": "Mara tests only what she already understands about Sable Bind while moving through the north hall, and leaves with uncertainty intact.",
+  "author_intent": "Demonstrate partial knowledge without leaking the chapter-nine mechanic.",
+  "start_assertions": [
+    {
+      "subject": "Mara",
+      "key": "location",
+      "op": "eq",
+      "value": "north_hall"
+    },
+    {
+      "subject": "Mara",
+      "key": "alive",
+      "op": "eq",
+      "value": true
+    }
+  ],
+  "scenes": [
+    {
+      "id": "S01",
+      "writer_goal": "Keep Mara physically grounded in the north hall and make the test feel practical rather than expository.",
+      "participants": [
+        "Mara"
+      ],
+      "beats": [
+        {
+          "id": "B001",
+          "kind": "action",
+          "writer_directive": "Mara crosses the north hall with her knife still in her possession and prepares to test Sable Bind.",
+          "actor": "Mara",
+          "preconditions": [
+            {
+              "subject": "Mara",
+              "key": "location",
+              "op": "eq",
+              "value": "north_hall"
+            },
+            {
+              "subject": "Mara",
+              "key": "inventory",
+              "op": "contains",
+              "value": "knife"
+            }
+          ],
+          "canon_refs": [
+            "ability.sable_bind"
+          ],
+          "goals_advanced": [
+            "test_known_bind_behavior"
+          ]
+        },
+        {
+          "id": "B002",
+          "kind": "action",
+          "writer_directive": "Show only the already-known visible effect: the bind can restrain a moving target when it works. Do not explain why resistance succeeds or fails.",
+          "actor": "Mara",
+          "depends_on": [
+            "B001"
+          ],
+          "canon_refs": [
+            "ability.sable_bind"
+          ],
+          "goals_advanced": [
+            "test_known_bind_behavior"
+          ]
+        },
+        {
+          "id": "B003",
+          "kind": "reflection",
+          "writer_directive": "Mara leaves the test with uncertainty about the bind's limits rather than a new rule explanation.",
+          "actor": "Mara",
+          "depends_on": [
+            "B002"
+          ]
+        }
+      ],
+      "target_words_min": 250,
+      "target_words_max": 900
+    }
+  ],
+  "required_goals": [
+    "test_known_bind_behavior"
+  ]
+}

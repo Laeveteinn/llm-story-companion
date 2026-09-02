@@ -1,0 +1,24 @@
+{
+  "name": "deterministic-writing-runtime-tools",
+  "private": true,
+  "version": "0.6.0",
+  "type": "module",
+  "description": "Pinned deterministic Node-side prose analyzers used by the writing runtime",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "dependencies": {
+    "cspell": "10.1.1",
+    "retext-contractions": "6.0.0",
+    "retext-english": "5.0.0",
+    "retext-indefinite-article": "5.0.0",
+    "retext-intensify": "7.0.0",
+    "retext-passive": "5.0.0",
+    "retext-redundant-acronyms": "5.0.0",
+    "retext-repeated-words": "5.0.0",
+    "retext-stringify": "4.0.0",
+    "unified": "11.0.5",
+    "plain-english": "1.0.0",
+    "slopless": "0.2.36"
+  }
+}
