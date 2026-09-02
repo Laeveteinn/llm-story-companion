@@ -1,6 +1,6 @@
 ---
 name: deterministic-writing-runtime
-description: Operate the deterministic fiction runtime from normal Hermes conversation, including Hermes Desktop GUI. Use writing-pilot for end-to-end runs; Python owns all gates and recursion.
+description: Operate the deterministic fiction runtime from normal Hermes conversation, including Hermes Desktop GUI. Initialize named stories and use writing-pilot for end-to-end runs; Python owns all gates and recursion.
 version: 0.7.1
 author: Project-local
 license: MIT
@@ -16,53 +16,79 @@ metadata:
 
 ## When to Use
 
-Use this skill whenever the user asks Hermes to plan, draft, continue, revise, repair, chronobreak, inspect, or run a writing pilot for the deterministic writing harness.
+Use this skill whenever the user asks Hermes to start a new story/pilot, plan, draft, continue, revise, repair, chronobreak, inspect, or run a writing pilot with the deterministic writing harness.
 
-The intended UX is conversational, including Hermes Desktop GUI. The user should be able to say things like:
-
-- "Start a writing pilot using the current fixture."
-- "Write chapter 12 from Mara's POV on main; here is the brief..."
-- "Run the deterministic harness on this chapter."
-- "Chronobreak from chapter 8 and rewrite the affected branch."
-
-Do **not** make the user manually execute low-level runtime commands unless they explicitly ask for them.
+The intended UX is conversational, including Hermes Desktop GUI. Do **not** make the user manually execute low-level runtime commands unless they explicitly ask for them.
 
 ## GUI / Working-Directory Rule
 
-Do not require the Hermes Desktop session to be opened in the harness repository. Desktop working-directory/project-skill discovery can differ from the active GUI project.
-
-The supported GUI entry point is the globally installed console command:
+Do not require the Hermes Desktop session to be opened in the harness repository. The supported GUI entry points are globally installed commands:
 
 ```text
+writing-project-init
 writing-pilot
 ```
 
-`writing-pilot` resolves the editable harness checkout from the installed `writing_runtime` package itself, changes into that authoritative root, and delegates to `integrations/hermes/pilot_controller.py`. Therefore the current GUI terminal CWD is not a trust boundary.
+They resolve the editable harness checkout from the installed `writing_runtime` package. The current GUI terminal CWD is not a trust boundary.
 
-If `writing-pilot` is unavailable, try:
+If those commands are unavailable, use `python -m writing_runtime.project_init` / `python -m writing_runtime.operator`. If those also fail, report that the checkout must be updated and `python -m pip install -e .` run again. Do not hunt the filesystem for another copy or silently clone a second runtime.
 
-```text
-python -m writing_runtime.operator
+## New / Own Story Pilot
+
+When the user says **new pilot**, **my pilot**, **my story**, **start a new project**, or supplies a fresh premise that is not the built-in fixture:
+
+1. **Never use Mara/Sable Bind/example canon or state.** Those are test fixtures only.
+2. Capture the user's premise, first-chapter intent, stylistic/length constraints, and other supplied material faithfully into one UTF-8 brief file. Do not invent a large story bible in the interactive GUI conversation.
+3. Obtain only genuinely required metadata not already supplied:
+   - project title;
+   - first viewpoint character/name.
+   Infer a filesystem-safe slug from the title and tell the user what slug is being used. Default the first chapter/timeline coordinate to `book1/ch01` unless the user specifies otherwise.
+4. Run the deterministic sparse initializer:
+
+```powershell
+writing-project-init <brief-file> `
+  --slug <slug> `
+  --title "<title>" `
+  --viewpoint "<viewpoint>"
 ```
 
-If both are unavailable, report that the checkout must be updated and bootstrapped again. Do not hunt the filesystem for another copy and do not silently clone a second runtime.
+5. The initializer creates an isolated local project under `projects/<slug>/` with its own premise, timeline, canon source, state source, compiled stores, runtime state, and manuscript directory. It intentionally begins with empty canon entries/state rather than hallucinating a prewritten bible.
+6. If initialization succeeds, run:
+
+```powershell
+writing-pilot --project <slug> --skip-setup
+```
+
+7. Report the initializer/controller's actual status and artifact paths. If either returns a deterministic failure or `human_review`, stop. Do not improvise a replacement workflow.
+
+`projects/` is ignored by the public harness repository by default. Never push a user's story project into the public harness repo unless the user explicitly requests that publication/version-control behavior.
+
+## Existing Named Project
+
+For an existing project created by `writing-project-init`, invoke:
+
+```text
+writing-pilot --project <slug> --skip-setup
+```
+
+The project config supplies its own brief, plan/timeline coordinates, canon/state sources, compiled libraries, work directory, and manuscript output. Do not substitute the root example stores.
 
 ## Conversational Operator Rule
 
-Interactive Hermes/Desktop is the **operator**, not the planner/writer/controller**.**
+Interactive Hermes/Desktop is the **operator**, not the planner/writer/controller.
 
 For an end-to-end writing request:
 
-1. Capture the user's requested writing brief faithfully in a UTF-8 file. A temporary/operator file in the current writable workspace is fine; it does not need to live in the harness checkout. Do not enrich the brief by reading hidden canon/state into the current interactive conversation.
-2. Determine the explicit runtime coordinates: `plan-id`, `chapter-key`, `at`, `timeline branch`, and `viewpoint`.
-3. Invoke `writing-pilot` once. Let that Python entry point locate the harness and let `pilot_controller.py` own planning, fresh child Hermes calls, disclosure epochs, deterministic gates, finite repair, Occam salvage, acceptance, and `human_review`.
+1. Capture the user's requested brief faithfully without reading hidden canon/state into the current interactive conversation.
+2. Invoke `writing-pilot` once, either with `--project <slug>` or explicit coordinates for an intentionally low-level run.
+3. Let `pilot_controller.py` own planning, fresh child Hermes calls, disclosure epochs, deterministic gates, finite repair, Occam salvage, acceptance, and `human_review`.
 4. Do not manually recreate the controller's plan/draft/repair loop in the interactive session.
-5. Report the controller's actual terminal status and artifact paths. Never convert a controller failure into a conversational "looks good" success.
-6. If the controller returns `human_review` or a request/contract failure, stop generative recursion and show the user the deterministic failure/result. Do not improvise another rewrite.
+5. Never convert a controller failure into a conversational "looks good" success.
+6. If the controller returns `human_review` or a request/contract failure, stop generative recursion and show the user the deterministic result.
 
-### Current fixture defaults
+### Built-in fixture defaults
 
-Only when the user explicitly says to use the **current/example/first pilot fixture**, use:
+Only when the user explicitly asks for the **current/example/Mara fixture**, use:
 
 - `plan-id`: `pilot.first.ch05`
 - `chapter-key`: `book1/ch05`
@@ -72,25 +98,7 @@ Only when the user explicitly says to use the **current/example/first pilot fixt
 - `workdir`: `runtime_state/pilot-first`
 - `out`: `runtime_state/pilot-first/final-chapter.txt`
 
-Do not silently apply these fixture values to a real project.
-
-### Preferred GUI invocation after bootstrap
-
-```powershell
-writing-pilot <brief-file> `
-  --plan-id <plan-id> `
-  --chapter-key <chapter-key> `
-  --at <timeline-key> `
-  --branch <branch> `
-  --viewpoint <viewpoint> `
-  --workdir <workdir> `
-  --out <output-file> `
-  --skip-setup
-```
-
-The same arguments can be passed to `python -m writing_runtime.operator` as a fallback.
-
-Pass `--provider` / `--model` only when the user asks to override Hermes's configured defaults. Do not use `--safe-mode` unless the configured provider/model is known to survive Hermes safe mode.
+Do not silently apply these values to a real project.
 
 ## Why the Interactive GUI Session Must Not Draft
 
@@ -116,16 +124,15 @@ For a requested retroactive rewrite, use the runtime's `chronobreak` command to 
 
 ## Same-Model Rule
 
-Phase names are not trust boundaries. Planner, writer, repairer, and interactive operator may all use the same underlying model weights.
-
-Isolation comes from deterministic context compilation and fresh child processes, not persona labels or promises to forget.
+Phase names are not trust boundaries. Planner, writer, repairer, and interactive operator may all use the same underlying model weights. Isolation comes from deterministic context compilation and fresh child processes, not persona labels or promises to forget.
 
 ## Verification
 
-Before declaring a project operation complete, run or rely on the deterministic gate that owns that artifact and report its actual pass/fail state.
+Before declaring a project operation complete, rely on the deterministic gate that owns the artifact and report its actual pass/fail state.
 
 For an accepted pilot, report at minimum:
 
+- project slug;
 - controller status (`accepted` or `human_review`/failure);
 - final chapter path if accepted;
 - plan/work directory paths;
