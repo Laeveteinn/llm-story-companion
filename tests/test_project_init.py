@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from writing_runtime import project_init
 from writing_runtime.canon import CanonLibrary
@@ -32,9 +31,10 @@ def test_sparse_project_initializer_builds_isolated_stores(tmp_path, monkeypatch
     assert state_db.is_file()
 
     canon = CanonLibrary(canon_db)
-    assert canon.timeline_ordinal('book1/ch01') == 1000001
+    ordinal = canon.timeline_ordinal('book1/ch01')
+    assert ordinal == 1000001
     state = StoryStateLibrary(state_db)
-    assert state.snapshot('book1/ch01', branch='main') == {}
+    assert state.state_at(ordinal, branch='main') == {}
 
 
 def test_project_initializer_refuses_overwrite(tmp_path, monkeypatch):
